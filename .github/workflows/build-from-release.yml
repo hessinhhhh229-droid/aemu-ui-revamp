@@ -1,4 +1,4 @@
-name: Build from release zip
+ame: Build from release zip
 
 on:
   release:
@@ -57,12 +57,16 @@ jobs:
           cd source/aemulator
           sed -i '/^org.gradle.java.home=/d' gradle.properties
           chmod +x gradlew
-          ./gradlew :app:assembleStandardDebug --stacktrace
+          ./gradlew :app:assembleV0003Debug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: aemulator-standard-debug
+          name: aemulator-v0003-debug
+          path: source/aemulator/app/build/outputs/apk/v0003/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
           path: source/aemulator/app/build/outputs/apk/standard/debug/*.apk
           if-no-files-found: error
           retention-days: 14
