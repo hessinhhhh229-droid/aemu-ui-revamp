@@ -1,4 +1,4 @@
-ame: Build from release zip
+name: Build from release zip
 
 on:
   release:
@@ -64,9 +64,5 @@ jobs:
         with:
           name: aemulator-v0003-debug
           path: source/aemulator/app/build/outputs/apk/v0003/debug/*.apk
-          if-no-files-found: error
-          retention-days: 14
-
-          path: source/aemulator/app/build/outputs/apk/standard/debug/*.apk
           if-no-files-found: error
           retention-days: 14
