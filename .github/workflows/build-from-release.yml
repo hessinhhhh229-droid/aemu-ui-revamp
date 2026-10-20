@@ -1,0 +1,68 @@
+name: Build from release zip
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (leave empty to use the latest release)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-from-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Unpack and build APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;35.0.0" "build-tools;36.0.0"
+
+      - name: Download release zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          if [ -n "$RELEASE_TAG" ]; then
+            gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "aemulator-ui-revamp.zip" --dir .
+          else
+            gh release download --repo "$GITHUB_REPOSITORY" --pattern "aemulator-ui-revamp.zip" --dir .
+          fi
+          unzip -q aemulator-ui-revamp.zip -d source
+
+      - name: Build APK
+        run: |
+          set -euo pipefail
+          cd source/aemulator
+          sed -i '/^org.gradle.java.home=/d' gradle.properties
+          chmod +x gradlew
+          ./gradlew :app:assembleStandardDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: aemulator-standard-debug
+          path: source/aemulator/app/build/outputs/apk/standard/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
